@@ -138,15 +138,39 @@ class MainWindow(QMainWindow):
 		menu = self.menuBar ()
 		file = menu.addMenu("&File")
 		_import = file.addMenu ('&Import')
-		_import.addAction ("Excel")
-		_import.addAction ("Csv")
+		
+		imp_excel = _import.addAction ("Excel")
+		imp_excel.triggered.connect (self.import_excel)
+
+		imp_csv = _import.addAction ("Csv")
+		imp_csv.triggered.connect (self.import_csv)
+
 		
 		_export = file.addMenu ('&Export')
-		_export.addAction ("Excel")
-		_export.addAction ("Csv")
+		exp_excel = _export.addAction ("Excel")
+		exp_excel.triggered.connect (self.export_excel)
+
+		exp_csv = _export.addAction ("Csv")
+		exp_csv.triggered.connect (self.export_csv)
 
 
 		database_sittings = menu.addMenu("&Database")
+
+	def import_excel (self):
+		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Excel Files (*.xlsx)")
+		import_excel_d (self.con, d)
+
+	def import_csv (self):
+		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Csv files (*.csv)")
+		import_csv_d (self.con, d)
+		
+	def export_excel (self):
+		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Excel Files (*.xlsx)")
+		export_excel_d (self.con, d)
+
+	def export_csv (self):
+		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Csv files (*.csv)")
+		export_csv_d (self.con, d)
 
 
 
