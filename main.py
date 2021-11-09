@@ -2,30 +2,51 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from database import *
+from add_item_dialog import *
 import sys
 
 database_link = 'database.db' #must be same working directory
+headers =  ['Reference', 'Description', 'Quantity', 'Price', 'Category', 'Datasheet']
+categories = ['Analog IC', 'Arduino', 'Bluetooth', 'Capacitors', 'Diodes', 'Inductor', 'IC', 'Mechanical', 'Microprocessor',
+ 'Operational Amplifiers', 'Optoelectronics', 'PIC', 'Resistors', 'Sound', 'Transducers', 'Transistors']
+
 
 class Table(QTableWidget):
 	"""a table"""
-	def __init__(self, *args, con, **kwargs):
+	def __init__(self, *args, con, headers, categories=categories, **kwargs):
 		super(Table, self).__init__(*args, **kwargs)
 		self.con = con
+		self.headers = headers
+		self.categories = categories
 		self.create_table ()
 
 
 	def create_table(self):
-		self.headers = ['icon', 'serial', 'quantity', 'price', 'category']
+		#['icon', 'serial', 'quantity', 'price', 'category']
+		#['Reference', 'Description', 'Quantity', 'Price', 'Category', 'Datasheet']
 		self.setColumnCount (len (self.headers))
 		self.setHorizontalHeaderLabels (self.headers)
 		#TODO: import data from database
 		tcontent = self.get_table_from_database ()
 		self.fill_table (tcontent)		
-		print (self.rowCount())
 
 		self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
 		self.resizeRowsToContents()
+
+
+	def add_row_to_end_table (self, row):
+		r = self.rowCount() + 1
+		self.setItem (r, 0, QTableWidgetItem (str (row [0])))	#ref
+		self.setItem (r, 1, QTableWidgetItem (str (row [1])))	#des
+		self.setItem (r, 2, QTableWidgetItem (str (row [2])))	#quan
+		self.setItem (r, 3, QTableWidgetItem (str (row [3])))	#pri
+		cat = QComboBox ()
+		cat.addItems (self.categories)
+		i = cat.findText(row [4])
+		cat.setCurrentIndex(i)
+		self.setCellWidget (r, 4, cat)	#cat
+		self.setItem (r, 5, QTableWidgetItem (str (row [5])))	#dat
 
 
 	def fill_table (self, listdata):
@@ -34,15 +55,17 @@ class Table(QTableWidget):
 		self.setRowCount(rows)
 		r = 0
 		for row in listdata:
-			print (row)
-			img = QPixmap ("00775576.jpg")
-			l = QLabel ()
-			l.setPixmap(img)
-			self.setCellWidget (r, 0,l)
-			self.setItem (r, 1, QTableWidgetItem (row [0]))
-			self.setItem (r, 2, QTableWidgetItem (str (row [2])))
-			self.setItem (r, 3, QTableWidgetItem (str (row [3])))
-			self.setItem (r, 4, QTableWidgetItem (row [4]))
+			self.setItem (r, 0, QTableWidgetItem (str (row [0])))	#ref
+			self.setItem (r, 1, QTableWidgetItem (str (row [1])))	#des
+			self.setItem (r, 2, QTableWidgetItem (str (row [2])))	#quan
+			self.setItem (r, 3, QTableWidgetItem (str (row [3])))	#pri
+			cat = QComboBox ()
+			cat.addItems (self.categories)
+			i = cat.findText(row [4])
+			cat.setCurrentIndex(i)
+			self.setCellWidget (r, 4, cat)	#cat
+			self.setItem (r, 5, QTableWidgetItem (str (row [5])))	#dat
+
 
 			r += 1
 
@@ -59,16 +82,23 @@ class List (QWidget):
 
 		sw = self.get_search_w ()
 
-		self.t = Table (con=self.con)	#create self.t in place
+		self.t = Table (con=self.con, headers=headers)	#create self.t in place
 		vlay.addWidget (sw)
 		vlay.addWidget (self.t)
 
 		self.setLayout(vlay)
 
+	def add_new_item (self):
+		d = new_item ()
+		d.exec ()
+		info = insert_row (self.con, d.result())
+		self.t.fill_table (get_table (self.con))
 
 	def get_search_w (self):
 		l = QLabel ("Search: ")
 		lb = QLineEdit ()
+		new_item = QPushButton ("Add row")
+		new_item.clicked.connect (self.add_new_item)
 		criteria = QComboBox ()
 		criteria.insertItems (0, ['name', 'serial'])
 
@@ -79,6 +109,7 @@ class List (QWidget):
 		hlay.addWidget (lb)
 		hlay.addWidget (criteria)
 		hlay.addWidget (butt)#connect it to something that look for stuff, problem for a future me lol
+		hlay.addWidget (new_item)
 		ww = QWidget ()
 		ww.setLayout (hlay)
 		return ww
@@ -108,7 +139,8 @@ class MainWindow(QMainWindow):
 		butt = QPushButton ("Search")
 		butt.clicked.connect (lambda : self.stack.setCurrentIndex(1))
 
-		line = QLineEdit ("Search")
+		line = QLineEdit ()
+		line.setPlaceholderText("Search")
 
 		hlay.addWidget (line)
 		hlay.addWidget (butt)
@@ -154,7 +186,12 @@ class MainWindow(QMainWindow):
 		exp_csv.triggered.connect (self.export_csv)
 
 
-		database_sittings = menu.addMenu("&Database")
+		database_settings = menu.addMenu("&Database")
+		del_db = database_settings.addAction ("Delete ")
+
+
+		themes = menu.addMenu ("&Themes")
+		language = menu.addMenu ("&Language")
 
 	def import_excel (self):
 		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Excel Files (*.xlsx)")
@@ -165,11 +202,11 @@ class MainWindow(QMainWindow):
 		import_csv_d (self.con, d)
 		
 	def export_excel (self):
-		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Excel Files (*.xlsx)")
+		d = QFileDialog.getExistingDirectory(self,  "Save excel", "C:")
 		export_excel_d (self.con, d)
 
 	def export_csv (self):
-		d = QFileDialog.getOpenFileName(self,  "Open excel", "C:", "Csv files (*.csv)")
+		d = QFileDialog.getExistingDirectory(self,  "Save excel", "C:")
 		export_csv_d (self.con, d)
 
 

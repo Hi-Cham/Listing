@@ -14,6 +14,7 @@ import csv, os
 [fun]	get_table
 
 '''
+headers =  ['Reference', 'Description', 'Quantity', 'Price', 'Category', 'Datasheet']
 
 
 def create_connection(f):
@@ -43,17 +44,19 @@ def bimg (imgf):
 	return b
 
 def insert_row (con, info):
-	info [1] = bimg (info [1])
+	#headers =  ['Reference', 'Description', 'Quantity', 'Price', 'Category', 'Datasheet']
+	infov = []
+	for tite in headers:
+		infov.append (info [tite])
 	ins = '''
-	INSERT INTO listing(id, icon, quantity, price, category) VALUES(?, ?, ?, ?, ?)'''
+	INSERT INTO listing(Reference, Description, Quantity, Price, Category, Datasheet) VALUES(?, ?, ?, ?, ?, ?)'''
 	cur = con.cursor ()
 	try:
-		cur.execute (ins, info)
-		print ("row in")
+		cur.execute (ins, infov)
 	except Error as e:
 		print (e)
 	con.commit ()
-	return cur.lastrowid
+	return infov
 def update_row (con, infodict):
 	to_update = '\n'
 	val=[]
@@ -104,16 +107,16 @@ def get_table (con):
 		print (e)
 	return cur.fetchall ()
 
-def import_csv (con, f):
+def import_csv_d (con, f):
 	csvf = pd.read_csv (f)
 	csvf.to_sql ('listing', con, if_exists='append', index=False)
 
-def import_excel (con, f):
+def import_excel_d (con, f):
 	excelf = pd.read_excel (f)
 	excelf.to_csv ('listing.csv', index=None, headers=False)
 	import_csv (con, os.path.join (os.getcwd (), 'listing.csv'))
 
-def export_csv(con, save_to):
+def export_csv_d (con, save_to):
 	cur = con.cursor ()
 	tabl = cur.execute ('SELECT * FROM listing').fetchall ()
 	with open (os.path.join (save_to, 'listing.csv'), 'w') as vf:
@@ -122,28 +125,26 @@ def export_csv(con, save_to):
 	return os.path.join (save_to, 'listing.csv')
 
 
-def export_excel(con, f):
+def export_excel_d (con, f):
 	cur = con.cursor ()
 	tabl = cur.execute ('SELECT * FROM listing').fetchall ()
 	df = pd.DataFrame(tabl)
 	writer = pd.ExcelWriter(os.path.join (f, 'listing.xlsx'), engine='xlsxwriter')
 	df.to_excel(writer, sheet_name='Listing', index=False)
 	writer.save()
-
+_name__ = '__main__'
 if __name__ == '__main__':
 	con = create_connection ("database.db")
 
 	t = """
 		CREATE TABLE IF NOT EXISTS listing (
-			id text PRIMARY KEY,
-			icon BLOB,			
-			quantity integer,
-			price integer,
-			category text NOT NULL
+			Reference text PRIMARY KEY,
+			Description text,			
+			Quantity integer,
+			Price integer,
+			Category text NOT NULL,
+			Datasheet text
 		);
 
 		"""
 	create_table (con, t)
-	insert_row (con, ['101',r"D:\shared\my_scripts\py\interface\pics\00775576.jpg",  0, 10, 'res'])
-	update_row (con, {'id':101, 'category':'onEntry'})
-	search_for (con, {"price":"10"})
